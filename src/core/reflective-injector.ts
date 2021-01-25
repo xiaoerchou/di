@@ -38,7 +38,7 @@ export class ReflectiveInjector extends Injector {
           this.reflectiveValues.set(token, value)
         });
         const params = this.resolveDeps(deps || [], notFoundValue);
-        let reflectiveValue = ff(...params);
+        const reflectiveValue = ff(...params); 
         this.reflectiveValues.set(token, reflectiveValue);
         return reflectiveValue
       }
