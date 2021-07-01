@@ -1,15 +1,28 @@
-import { Annotations, ClassDecoratorContextCallback, PropertyDecoratorContextCallback } from './annotations';
+import {
+  Annotations,
+  ClassDecoratorContextCallback,
+  ParamDecoratorConfig,
+  PropertyDecoratorContextCallback
+} from './annotations';
 
-export function makeParamDecorator(token: any, ...params: any[]): ParameterDecorator {
+/**
+ * 创建参数装饰器的工厂函数
+ */
+export function makeParamDecorator(token: any, config: ParamDecoratorConfig, ...params: any[]): ParameterDecorator {
   return function (target, propertyKey, parameterIndex) {
     const annotations = getAnnotations(target);
     annotations.pushParamMetadata(token, {
+      propertyKey,
       parameterIndex,
+      config,
       decoratorArguments: params
     });
   }
 }
 
+/**
+ * 创建属性装饰器的工厂函数
+ */
 export function makePropertyDecorator(token: any, contextCallback: PropertyDecoratorContextCallback): PropertyDecorator {
   return function (target, propertyKey) {
     const annotations = getAnnotations(target.constructor);
@@ -20,6 +33,9 @@ export function makePropertyDecorator(token: any, contextCallback: PropertyDecor
   }
 }
 
+/**
+ * 创建方法装饰器的工厂函数
+ */
 export function makeMethodDecorator(token: any, ...params: any[]): MethodDecorator {
   return function (target, methodName) {
     const annotations = getAnnotations(target.constructor);
@@ -30,6 +46,9 @@ export function makeMethodDecorator(token: any, ...params: any[]): MethodDecorat
   }
 }
 
+/**
+ * 创建类装饰器的工厂函数
+ */
 export function makeClassDecorator(token: any, contextCallback?: ClassDecoratorContextCallback, ...args: any[]): ClassDecorator {
   return function (target) {
     const annotations = getAnnotations(target);
@@ -41,6 +60,9 @@ export function makeClassDecorator(token: any, contextCallback?: ClassDecoratorC
   }
 }
 
+/**
+ * 获取类注解的工具函数
+ */
 export function getAnnotations(target: any): Annotations {
   if (!target.hasOwnProperty('__annotaions__')) {
     const annotations = new Annotations();

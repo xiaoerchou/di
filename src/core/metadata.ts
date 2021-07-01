@@ -15,11 +15,21 @@ export interface InjectDecorator {
   new(token: any): Inject;
 }
 
+/**
+ * 构造函数参数装饰器，用于改变注入 token
+ */
 export const Inject: InjectDecorator = function InjectDecorator(token: any): ParameterDecorator {
   if (this instanceof InjectDecorator) {
     this.token = token
   } else {
-    return makeParamDecorator(Inject, new Inject(token));
+    return makeParamDecorator(Inject, {
+      metadataGenerator() {
+        return new Inject(token);
+      },
+      reflectiveController(dep) {
+        dep.injectKey = token instanceof ForwardRef ? token.getRef() : token;
+      }
+    }, token);
   }
 } as InjectDecorator
 
@@ -34,7 +44,14 @@ export interface SelfDecorator {
 
 export const Self: SelfDecorator = function SelfDecorator(): ParameterDecorator {
   if (!(this instanceof Self)) {
-    return makeParamDecorator(Self);
+    return makeParamDecorator(Self, {
+      metadataGenerator() {
+        return new Self()
+      },
+      reflectiveController(dep) {
+        dep.visibility = Self;
+      }
+    });
   }
 } as SelfDecorator;
 
@@ -49,7 +66,14 @@ export interface SkipSelfDecorator {
 
 export const SkipSelf: SkipSelfDecorator = function SkipSelfDecorator(): ParameterDecorator {
   if (!(this instanceof SkipSelf)) {
-    return makeParamDecorator(SkipSelf);
+    return makeParamDecorator(SkipSelf, {
+      metadataGenerator() {
+        return new SkipSelf()
+      },
+      reflectiveController(dep) {
+        dep.visibility = SkipSelf;
+      }
+    });
   }
 } as SkipSelfDecorator;
 
@@ -64,30 +88,34 @@ export interface OptionalDecorator {
 
 export const Optional: OptionalDecorator = function OptionalDecorator(): ParameterDecorator {
   if (!(this instanceof Optional)) {
-    return makeParamDecorator(Optional);
+    return makeParamDecorator(Optional, {
+      metadataGenerator() {
+        return new Optional()
+      },
+      reflectiveController(dep) {
+        dep.visibility = Optional;
+      }
+    });
   }
 } as OptionalDecorator;
 
 export interface TypeDecorator {
   <T extends Type<any>>(type: T): T;
 
-  (target: Object, propertyKey?: string | symbol, parameterIndex?: number): void;
+  (target: unknown, propertyKey?: string | symbol, parameterIndex?: number): void;
 }
 
 export interface Prop {
-  token: any;
 }
 
 export interface PropDecorator {
-  (token: any): PropertyDecorator;
+  <T>(token: Type<T> | InjectionToken<T> | ForwardRef<T>, notFoundValue?: T, flags?: InjectFlags): PropertyDecorator;
 
   new(token: any): Prop;
 }
 
 export const Prop: PropDecorator = function PropDecorator<T>(token: Type<T> | InjectionToken<T>, notFoundValue: T = THROW_IF_NOT_FOUND as T, flags?: InjectFlags): PropertyDecorator {
-  if (this instanceof PropDecorator) {
-    this.token = token
-  } else {
+  if (!(this instanceof Prop)) {
     return makePropertyDecorator(Prop, function (instance: any, propertyName: string, injector: Injector) {
       instance[propertyName] = injector.get(token instanceof ForwardRef ? token.getRef() : token, notFoundValue, flags);
     });

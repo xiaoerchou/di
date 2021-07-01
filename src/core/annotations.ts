@@ -1,35 +1,56 @@
 import { Injector } from './injector';
 import { Type } from './type';
+import { ReflectiveDependency } from './reflective-provider';
 
 export interface ClassDecoratorContextCallback {
   (paramsTypes: any[], annotations: Annotations, constructor: Type<any>): any[] | void; // return dependency declaration
 }
 
+export interface ClassDecoratorInvokeFn {
+  (constructor: Type<any>, paramTypes: any[]): void;
+}
+
+export interface ClassDecoratorPreset {
+  invoke: ClassDecoratorInvokeFn;
+  // contextCallback?:
+}
+
 export interface ClassAnnotation {
   paramTypes: any[];
   decoratorArguments: any[];
-  contextCallback: ClassDecoratorContextCallback;
+  invoke?: ClassDecoratorInvokeFn,
+  contextCallback?: ClassDecoratorContextCallback;
+}
+
+export interface ParamDecoratorConfig {
+  metadataGenerator: () => any;
+  reflectiveController?: (reflectiveDependency: ReflectiveDependency) => void;
 }
 
 export interface ParamAnnotation {
+  propertyKey: string | symbol;
   parameterIndex: number;
+  config: ParamDecoratorConfig,
   decoratorArguments: any[];
 }
 
 export interface PropertyDecoratorContextCallback {
-  (instance: any, propertyName: string | Symbol, injector: Injector): void;
+  (instance: any, propertyName: string | symbol, injector: Injector): void;
 }
 
 export interface PropertyAnnotation {
-  propertyKey: string | Symbol;
+  propertyKey: string | symbol;
   contextCallback: PropertyDecoratorContextCallback;
 }
 
 export interface MethodAnnotation {
-  methodName: string | Symbol;
+  methodName: string | symbol;
   params: any[];
 }
 
+/**
+ * 用于保存 class 的元数据
+ */
 export class Annotations {
   private classes = new Map<any, ClassAnnotation>();
   private props = new Map<any, PropertyAnnotation[]>();
@@ -58,6 +79,10 @@ export class Annotations {
 
   getParamMetadata(token: any) {
     return this.params.get(token);
+  }
+
+  getParamMetadataKeys() {
+    return Array.from(this.params.keys());
   }
 
   getPropMetadataKeys() {

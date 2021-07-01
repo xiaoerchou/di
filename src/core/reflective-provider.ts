@@ -3,10 +3,11 @@ import {
   ConstructorProvider,
   ExistingProvider,
   FactoryProvider,
-  Provider, TypeProvider,
+  Provider,
+  TypeProvider,
   ValueProvider
 } from './provider';
-import { Injector } from './injector';
+import { InjectFlags, Injector } from './injector';
 import { Inject, Optional, Self, SkipSelf } from './metadata';
 import { Type } from './type';
 import { getAnnotations } from './decorators';
@@ -24,6 +25,10 @@ export interface NormalizedProvider {
   deps: ReflectiveDependency[]
 }
 
+/**
+ * 标准化 provide，并返回统一数据结构
+ * @param providers
+ */
 export function normalizeProviders(providers: Provider[]): NormalizedProvider[] {
   return providers.map(provider => {
     if ((provider as ValueProvider).useValue) {
@@ -66,6 +71,12 @@ function normalizeClassProviderFactory(provider: ClassProvider): NormalizedProvi
     deps,
     generateFactory(injector, cacheFn) {
       return function (...args: any[]) {
+        if (provider.provide !== provider.useClass) {
+          const cachedInstance = injector.get(provider.useClass, null, InjectFlags.Optional);
+          if (cachedInstance) {
+            return cachedInstance;
+          }
+        }
         const instance = new provider.useClass(...args);
         const propMetadataKeys = getAnnotations(provider.useClass).getPropMetadataKeys();
         propMetadataKeys.forEach(key => {
@@ -74,7 +85,10 @@ function normalizeClassProviderFactory(provider: ClassProvider): NormalizedProvi
             item.contextCallback(instance, item.propertyKey, injector);
           })
         })
-        cacheFn(provider.useClass, instance);
+        cacheFn(provider.provide, instance);
+        if (provider.provide !== provider.useClass) {
+          cacheFn(provider.useClass, instance);
+        }
         return instance;
       }
     }

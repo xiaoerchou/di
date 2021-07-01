@@ -11,6 +11,9 @@ export interface InjectableDecorator {
   new(): Injectable;
 }
 
+/**
+ * 可注入类的装饰器
+ */
 export const Injectable: InjectableDecorator = function InjectableDecorator(): ClassDecorator {
   if (!(this instanceof InjectableDecorator)) {
     return makeClassDecorator(Injectable, (params, annotations, construct) => {
@@ -20,7 +23,7 @@ export const Injectable: InjectableDecorator = function InjectableDecorator(): C
       }
       const deps = (metadata.paramTypes || []).map(i => [i]);
       (annotations.getParamMetadata(Inject) || []).forEach(item => {
-        deps[item.parameterIndex].push(item.decoratorArguments[0].token);
+        deps[item.parameterIndex].push(item.config.metadataGenerator());
       });
       (annotations.getParamMetadata(Self) || []).map(item => {
         deps[item.parameterIndex].push(new Self());
